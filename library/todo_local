@@ -1,0 +1,3 @@
+3) Support on AudioBuffer the set_channel to be completed
+7) Bug: locking if removed disk during play on CD player
+

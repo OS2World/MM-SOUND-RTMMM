@@ -1,0 +1,46 @@
+This file was created half of November 1996
+The order is not the order of the work.
+I am going to work on them as I feel like.
+If somebody wants to help, please contact me.
+
+1) Solve CD Playing to DART/RTMMM problems 
+*- problem found : MUSIC DISKs are read at 44080 Hz !!!! <<44100 of DART
+*- they are read as 1x
+*- A data disk is read correctly at 4X . A data disk can be played much 
+*- faster. Thus I have adjusted the rate of playing of the RTMMM and DART
+*- by 50Hz. No other application will notice it bu the actual data requests
+*- are now less frequent!
+*- This behaviour seems to be CD player dependant.
+*- I must find a way of improving that.
+2) Investigate clicks on CD data
+*- Maybe they are cured now??
+3) Add more File types
+*- WAV supported only output
+4) Work on Maplay3
+5) Work on the BitStream
+6) Work on the Ampeg 2 Encoder:
+-  Put data files into code
+-  Support direct from CD compression
+7) Write a Wav player.
+8) Write an AudioInputStream Class
+- Support AD input
+- Support file input
+- Support CD input
+- Support directo to AudioStream playback
+9) Work on RTMMM exstension
+- Extra Audio outputs:
+-- level meter
+-- secondary monitor DA board ( very tough )
+-- interface for multiple output clients
+- Filters in the ouput stadium : reverber filter etc
+with user defined parameters: allow graphical equalizer
+being written
+- Better interpolating filter for lower sampling rates.
+- Assembler ??
+- Optimization ??
+10) PIPE interface for maplay
+- Allow grafical user interface and automatizing REXX scripts
+11) PIPE interface for rtmmmcd
+- Allow grafical user interface and automatizing REXX scripts
+12) Write a MIDI player (HELP)
+13) Multiple Control programs interface for RTMMM

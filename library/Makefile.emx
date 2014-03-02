@@ -1,0 +1,52 @@
+LIBS = AudioStream.a AudioStream.lib
+
+INOBJS=  CDInputAudioStream.obj     CDInputAudioStream.o     \
+         FileInputAudioStream.obj   FileInputAudioStream.o  
+OUTOBJS= RTMMMOutputAudioStream.obj RTMMMOutputAudioStream.o \
+         DARTOutputAudioStream.obj \
+         FileOutputAudioStream.obj  FileOutputAudioStream.o  \
+         NULLOutputAudioStream.obj  NULLOutputAudioStream.o  
+   
+
+PIPEOBJS=
+
+OBJS = $(INOBJS) $(OUTOBJS) $(PIPEOBJS)
+
+COMPILER = gcc
+CFLAGS =  -Zmt -c -O3 -funroll-loops -fstrength-reduce -fexpensive-optimizations -ffast-math -m486 -DLINUX -DDAMN_INTEL_BYTE_ORDER -D_EMX_
+CFLAGS_OMF =   -Zmt -Zomf -c -O3 -funroll-loops -fstrength-reduce -fexpensive-optimizations -ffast-math -m486 -DLINUX -DDAMN_INTEL_BYTE_ORDER -D_EMX_ -D__USE_DART__
+
+.SUFFIXES:      .cc .obj .o
+
+all:            $(OBJS) $(LIBS)
+	echo $(OBJS)
+.cc.obj:
+		$(COMPILER) -c $(CFLAGS_OMF) $(INCLUDEDIRS) $*.cc -o $@
+.cc.o:
+		$(COMPILER) -c $(CFLAGS) $(INCLUDEDIRS) $*.cc -o $@
+AudioStream.a:
+		touch AudioStream.a
+		rm AudioStream.a	
+		ar -rc AudioStream.a *.o
+AudioStream.lib:
+		touch AudioStream.lib	
+		rm AudioStream.lib	
+		emxomfar rc AudioStream.lib *.obj
+
+$(OBJS): AudioStream.h GenDefs.h
+$(OUTOBJS): OutputAudioStream.h
+$(INOBJS): InputAudioStream.h
+$(PIPEOBJS): PipeAudioStream.h
+RTMMMOutputAudioStream.obj: rtmmm.h
+RTMMMOutputAudioStream.o: rtmmm.h
+DARTOutputAudioStream.obj:
+FileOutputAudioStream.obj:
+FileOutputAudioStream.o:
+NULLOutputAudioStream.obj:
+NULLOutputAudioStream.o:
+CDInputAudioStream.obj:
+CDInputAudioStream.o:
+
+
+AudioStream.a: $(OBJS)
+AudioStream.lib: $(OBJS)

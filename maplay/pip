@@ -1,0 +1,4 @@
+In file included from synthesis_filter.cc:35:
+all.h:25: warning: abstract declarator used as declaration
+gcc: ../library/AudioOutput.obj: No such file or directory
+make: *** [maplay.exe] Error 1

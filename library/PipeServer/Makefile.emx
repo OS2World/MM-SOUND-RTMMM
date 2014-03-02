@@ -1,0 +1,27 @@
+LIBS = PipeServer.a PipeServer.lib
+
+OBJS=  PipeServer.obj     PipeServer.o 
+
+COMPILER = gcc
+CFLAGS =  -Zmt -c -O3 -funroll-loops -fstrength-reduce -fexpensive-optimizations -ffast-math -m486 -DLINUX -DDAMN_INTEL_BYTE_ORDER -D_EMX_
+CFLAGS_OMF =   -Zmt -Zomf -c -O3 -funroll-loops -fstrength-reduce -fexpensive-optimizations -ffast-math -m486 -DLINUX -DDAMN_INTEL_BYTE_ORDER -D_EMX_ -D__USE_DART__
+
+.SUFFIXES:      .cc .obj .o
+
+all:            $(OBJS) $(LIBS)
+	echo $(OBJS)
+.cc.obj:
+		$(COMPILER) -c $(CFLAGS_OMF) $(INCLUDEDIRS) $*.cc -o $@
+.cc.o:
+		$(COMPILER) -c $(CFLAGS) $(INCLUDEDIRS) $*.cc -o $@
+PipeServer.a:   $(OBJS)
+		touch PipeServer.a
+		rm PipeServer.a	
+		ar -rc PipeServer.a *.o
+PipeServer.lib: $(OBJS)
+		touch PipeServer.lib	
+		rm PipeServer.lib	
+		emxomfar rc PipeServer.lib *.obj
+
+$(OBJS): PipeServer.h 
+

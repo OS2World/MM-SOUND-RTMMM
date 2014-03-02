@@ -1,0 +1,374 @@
+From:	US1RMC::"seymour@m31.dgbt.doc.ca" "Seymour Shlien" 27-AUG-1993 15:05:31.82
+To:	3d::pan
+CC:	
+Subj:	problems and fixes
+
+Dear Davis,
+
+I have now got the MPEG audio coder and decoder to
+work on both UNIX (Sparc 2) and Microsoft C. All the problems
+that we encountered were mainly restricted to the code in the
+file common.c and were related to the AIFF
+audio format functions. I gather from the comments in
+the text, other people had encountered similar problems.
+
+When compiled under UNIX,  the gcc compiler
+gave messages similar to below.  
+
+common.c: In function `aiff_read_headers':
+common.c:673: warning: multi-character character constant
+common.c:674: warning: multi-character character constant
+common.c:688: warning: multi-character character constant
+common.c:719: warning: multi-character character constant
+common.c:719: warning: passing arg 2 of `strcmp' makes pointer from integer without a cast
+common.c: In function `aiff_write_headers':
+common.c:807: warning: multi-character character constant
+common.c:808: warning: multi-character character constant
+common.c:809: warning: multi-character character constant
+
+   670     if (fread(&FormChunk, sizeof(Chunk), 1, file_ptr) != 1)
+   671        return(-1);
+   672   
+   673     if (*(unsigned long *) FormChunk.ckID != IFF_ID_FORM ||
+   674         *(unsigned long *) FormChunk.formType != IFF_ID_AIFF)
+   675        return(-1);
+   676
+   677
+   678  /*   if (strcmp(FormChunk.ckID,IFF_ID_FORM) ||
+   679         strcmp(FormChunk.formType,IFF_ID_AIFF))
+   680        return(-1);
+   681  */
+   ...
+   ...
+   715           aiff_ptr->numSampleFrames = CommChunk.numSampleFrames;
+   716           aiff_ptr->sampleSize = CommChunk.sampleSize;
+   717   
+   718  /*    } else if (*(unsigned long *)Header.ckID == IFF_ID_SSND) { */
+   719        } else if (strcmp(Header.ckID,IFF_ID_SSND)) {
+   720   
+   721           /*
+
+
+Similarly on MSDOS we obtained the following warnings
+
+Microsoft (R) Program Maintenance Utility   Version 1.11    
+Copyright (c) Microsoft Corp 1988-90. All rights reserved.
+
+	cl /AL /G2 /FPi87 /nologo /c /Gi musicin.c
+musicin.c
+musicin.c(959) : warning C4047: '!=' : different levels of indirection
+	cl /AL /G2 /FPi87 /nologo /c /Gi common.c
+common.c
+common.c(814) : warning C4047: '=' : different levels of indirection
+common.c(815) : warning C4047: '=' : different levels of indirection
+common.c(816) : warning C4047: '=' : different levels of indirection
+
+   814   
+   815     *(unsigned long *) FormChunk.ckID     = IFF_ID_FORM;
+   816     *(unsigned long *) FormChunk.formType = IFF_ID_AIFF;
+   817     *(unsigned long *) CommChunk.ckID     = IFF_ID_COMM;
+   818
+   819     double_to_extended(&aiff_ptr->sampleRate, temp_sampleRate);
+  
+also a few similar error messages in musicin.c and musicout.c
+
+
+Despite these warnings both the encoder (musicin) and the decoder
+musicout appeared to run correctly on the data files 
+orig.mpg and sine.dec. However command line input is not
+properly implemented on MicroSoft C. The program tries to make
+a file orig.mpg.dec which is not legal in MSDOS
+
+
+
+         BUGS  IN THE SOFTWARE
+
+For MS_DOS it was necessary to modify the
+mem_alloc function in order to avoid crashing the computer on startup.
+I do not know the reason as I am not an expert in MicroSoft C.
+
+
+Also, the software does not properly handle AIFF formatted files.
+Using the program musicout I created an AIFF formatted file from
+the orig.mpg file. When I ran musicin on the AIFF formatted file on
+our SUN work station (ie UNIX environment) , the program crashed.
+On the other hand, when the same test was performed on the MSDOS,
+the computer did not crash but it failed to recognize the
+file as an AIFF formatted file and it did not read the header block.
+Nevertheless it was still able to compress the file, once the appropriate
+header information was typed in. 
+
+
+The problems seem to be related to the handling of the ID information
+in the chunk structure of the AIFF file. The ID is a 32 bit integer   
+which can take one of 5 designated values. The designated values
+for convenience also can be decoded as ascii strings FORM, AIFF
+COMM, SSND and MPEG. The ISO software attempts to provide two ways
+of handling these numbers- either as a multicharacter constant or
+a string.
+
+In the common.h file
+
+/*
+ * Note:  The value of a multi-character constant
+ *        is implementation-defined.
+ */
+#if !defined(MS_DOS) && !defined(AIX)
+
+#define         IFF_ID_FORM             'FORM'
+#define         IFF_ID_AIFF             'AIFF'
+#define         IFF_ID_COMM             'COMM'
+#define         IFF_ID_SSND             'SSND'
+#define         IFF_ID_MPEG             'MPEG'
+#else
+#define         IFF_ID_FORM             "FORM"
+#define         IFF_ID_AIFF             "AIFF"
+#define         IFF_ID_COMM             "COMM"
+#define         IFF_ID_SSND             "SSND"
+#define         IFF_ID_MPEG             "MPEG"
+#endif
+ 
+
+
+Unfortunately, the revisions to the code in common.c
+do not properly read or write the AIFF header block in
+either mode.
+
+If the IFF_* constants are defined as a long integer, (ie
+single quotes around FORM, AIFF, etc.), then the strcmp
+function will crash on some machines because the inputs
+Header.ckID and IFF_ID_FORM are not strings. Strcmp
+expects to receive null terminated strings. Since it
+instead receives addresses to nonterminated strings, the
+strcmp runs off to infinity searching for the null character.
+
+Note: when IFF_* are defined as strings, Header.ckID is
+still not a null terminated string. Fortunately strcmp
+stops when a null is encountered in either one of its 
+arguments -- in this case a null is encountered in
+IFF_*. It might be safer to use strncmp which includes
+a string length argument.
+
+  
+
+This was the source of our problem on the UNIX machine as
+the common.c attempted to do a string compare in one
+spot (around line 718). 
+
+/*    } else if (*(unsigned long *)Header.ckID == IFF_ID_SSND) { */
+      } else if (strcmp(Header.ckID,IFF_ID_SSND)) {
+
+The commented line would have worked correctly in the
+UNIX environment.
+
+
+A different problem occurs in MS_DOS. In the function 
+aiff_write_header the following statement does not do what
+was intended when IFF_ID_FORM is a string.
+
+  *(unsigned long *) FormChunk.ckID     = IFF_ID_FORM;
+
+IFF_ID_FORM points to an address of the string "FORM". Though
+it was intended to put "FORM" in FormChunk.ckID, the above
+statement instead places the address of IFF_ID_FORM into
+FormChunk.ckID. This is what is put in the AIFF file. Musicin
+reads the file and fails to recognize it as an AIFF file. (The
+above statement would have been correct if IFF_ID_FORM was
+a long integer.) 
+
+
+               FIXES
+
+I have made the following changes in the software so that it
+can now handle AIFF formatted files in either MicroSoft C or
+UNIX.
+
+In common.h, I have introduced a new def called IFF_LONG
+whenever IFF_* is represented by multicharacter longs instead
+of strings. 
+ 
+187,188c187
+< #if !defined(MS_DOS) && !defined(AIX)  
+< #define         IFF_LONG
+---
+> #if !defined(MS_DOS) && !defined(AIX)
+
+
+
+
+In common.c the following changes were made
+
+
+For avoiding crashing the PC on startup
+456,457c456
+<     /*ptr = (void FAR *) _fmalloc((unsigned int)block);*/ /* far memory, 92-07-08 sr */
+<     ptr = (void FAR *) malloc((unsigned int)block); /* far memory, 93-08-24 ss */
+---
+>     ptr = (void FAR *) _fmalloc((unsigned int)block); /* far memory, 92-07-08 sr */
+
+
+ 
+For debugging and testing
+646,656d644
+< 
+< /****  for debugging 
+< showchar(str)
+< char str[4];
+< {
+< int i;
+< for (i=0;i<4;i++) printf("%c",str[i]);
+< printf("\n");
+< }
+< ****/
+< 
+
+
+To correct the problems with the IFF_* ID's I do
+the string comparisons two different ways depending
+on whether IFF_LONG is defined. 
+
+
+
+685d672
+< #ifdef IFF_LONG 
+689d675
+< #else
+691,694d676
+<    if (strncmp(FormChunk.ckID,IFF_ID_FORM,4) ||
+<        strncmp(FormChunk.formType,IFF_ID_AIFF,4))
+<       return(-1);
+< #endif
+695a678,681
+> /*   if (strcmp(FormChunk.ckID,IFF_ID_FORM) ||
+>        strcmp(FormChunk.formType,IFF_ID_AIFF))
+>       return(-1);
+> */
+702d687
+< #ifdef IFF_LONG  
+705,708c690,691
+< #else
+<       if (strncmp(Header.ckID,IFF_ID_COMM,4) == 0) {
+< #endif
+< 
+---
+> /*      if (strcmp(Header.ckID,IFF_ID_COMM)) {
+> */
+711a695
+> 
+734,738c718,720
+< #ifdef IFF_LONG 
+<       } else if (*(unsigned long *)Header.ckID == IFF_ID_SSND) { 
+< #else
+<       } else if (strncmp(Header.ckID,IFF_ID_SSND,4) == 0) {
+< #endif
+---
+> /*    } else if (*(unsigned long *)Header.ckID == IFF_ID_SSND) { */
+>       } else if (strcmp(Header.ckID,IFF_ID_SSND)) {
+> 
+741a724
+> 
+824d806
+< #ifdef IFF_LONG 
+828,832d809
+< #else
+<    strncpy(FormChunk.ckID,IFF_ID_FORM,4);
+<    strncpy(FormChunk.formType,IFF_ID_AIFF,4);
+<    strncpy(CommChunk.ckID,IFF_ID_COMM,4);
+< #endif
+1536a1514
+> 
+
+
+
+
+In musicin.c
+
+The following changes were made for the same reasons discussed above.
+
+
+959d958
+< #ifdef IFF_LONG
+961,963d959
+< #else
+<     if (strncmp(&pcm_aiff_data->sampleType,IFF_ID_SSND,4)) {
+< #endif
+
+
+
+In musicout.c
+
+The following changes were made for the same reasons discussed above.
+
+
+381d380
+< #ifdef IFF_LONG       
+383,385d381
+< #else
+<        strncpy(&pcm_aiff_data.sampleType,IFF_ID_SSND,4);
+< #endif
+388c384
+<  
+---
+> 
+
+
+This is a copy of the makefile that I am using on the IBM. Perhaps
+one of the switches might explain why I had trouble with the 
+mem_alloc.
+
+ALL : musicin.exe musicout.exe
+
+CFLAGS = /AL /G2 /FPi87 /nologo /c /Gi /F 256 
+LFLAGS= /SE:256 /ST:16000 /F /PACKC
+
+musicin.obj: musicin.c common.h encoder.h
+    cl $(CFLAGS) musicin.c
+
+common.obj: common.c common.h
+    cl $(CFLAGS) common.c
+
+encode.obj: encode.c common.h encoder.h
+    cl $(CFLAGS) encode.c
+
+subs.obj: subs.c common.h encoder.h
+    cl $(CFLAGS) subs.c
+
+psy.obj: psy.c common.h encoder.h
+    cl $(CFLAGS) psy.c
+
+tonal.obj: tonal.c common.h encoder.h
+    cl $(CFLAGS) tonal.c
+
+musicout.obj: musicout.c common.h decoder.h
+    cl $(CFLAGS) musicout.c
+
+decode.obj: decode.c common.h decoder.h
+    cl $(CFLAGS) decode.c
+
+musicin.exe: musicin.obj common.obj encode.obj subs.obj psy.obj tonal.obj
+    link $(LFLAGS) musicin common encode subs psy tonal,musicin,,;
+
+musicout.exe: musicout.obj common.obj decode.obj subs.obj
+    link $(LFLAGS) musicout common decode subs,musicout,,;
+
+
+
+
+I am grateful, for the help from Daniel Lauzon -- our resident C and C++
+expert. Also Bill Truerniet helped me with Microsoft C 
+on the PC.
+   
+
+seymour@dgbt.doc.ca
+
+
+% ====== Internet headers and postmarks (see DECWRL::GATEWAY.DOC) ======
+% Received: by us1rmc.bb.dec.com; id AA06920; Fri, 27 Aug 93 14:58:09 -0400
+% Received: by inet-gw-1.pa.dec.com; id AA02547; Fri, 27 Aug 93 11:59:18 -0700
+% Received: from rigel.dgbt.doc.ca by  m31.dgbt.doc.ca (4.1/SMI-4.1) id AA01692; Fri, 27 Aug 93 14:57:59 ED
+% Date: Fri, 27 Aug 93 14:57:59 EDT
+% From: seymour@m31.dgbt.doc.ca (Seymour Shlien)
+% Message-Id: <9308271857.AA01692@ m31.dgbt.doc.ca>
+% To: 3d::pan
+% Subject: problems and fixes
+

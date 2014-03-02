@@ -1,0 +1,83 @@
+v1 first release sharedmemory version 109
+
+v1 -> v2 
+
+sharmem v 211 (code version 1 public release 2 internal release 11)
+1)
+The gain settings for each channel are not anymore in the input-channel structure
+It is not anymore the application responsability to set them.
+The application only sets the filter constant.
+Doing so the mixer will preserve the settings when a new client uses a channel
+
+2)
+Added preferred_channel entry on the input channel.
+This will allow the client to specify a fixed input channel.
+The application should check if the channel has been given to before starting to play
+to an unconnected channel. This can be done by checking if the channel gets allocated correctly in
+the main shared memory of the server. The server will post the semaphore 
+to signify that the client may begin the checking. This is to avoid that the client 
+checks too early..
+
+3)
+Added semaphore to allow graphic client (only one supported by this method) to
+stop polling for news.. See example mixer
+Thanks to Dave Boll and YdbaUtil.... 
+an inf file with more detail has been added to the distribution.
+
+4)
+Beefed up the mixer console...
+New buttons added not yet working : B should link multiple channels so that 
+the overall volume is always adding up to 1 ... for fading in-out 
+2 is for the secondary output ... It will need an upgrade to the output section.
+
+5)
+Now obuffer class can be compiled optionally without DART support.
+This will allow compiling under EMX not omf or any compilers that won`t allow
+linking to the IBM libraries or if you do not want to link to them..
+MAPLAY under this option has been recompiled in the WATCOM 10.6 env.
+I cannot get a better performance anyway!!! So still EMX-GNU results to
+be the best compiler.. by FAR..
+
+6) 
+Priority RAISED to 10 CRITICAL as default after having discovered how many 
+non real-time tasks use the TIME-CRITICAL priority...
+The RTMMM_MIXER_PRI constant defines the priority used by the mixer task.
+The client should use only lesser priorities...
+
+v2 -> v3 -> v4
+7) 
+Fixed termination bug on MAPLAY...
+Now when using both DART and RTMMM it plays up to the last bit...
+Fixed also priority on termination so that during termination CPU usage
+does not go to 100% while being time critical.
+
+8) 
+Separated Obuffer from MAPLAY and renamed AudioBuffer. 
+It is now part of the RTMMM CLASS library.. New interface for
+fast buffer handling has been added.
+
+9) 
+The Class AudioCD is taking its final shape..
+The rtmmmcd application example is actually now quite useful.
+AudioCD can play through AudioBuffer classes!
+
+10)
+The NULL device is a rate measurement tool!!
+
+11) 
+DART interface of both RTMMM and the library is now played at
+a faked frequency of f-50 Hz. RTMMM still reports 44100 hertz to the
+user which will not notice that! The CD-PLAYER onthe other hand now can work!
+There was a small difference of clocking between the two resulting in
+intermittent gaps in the sound. Now it is cured.
+50 hz difference is barely noticeable.
+
+12) 
+My CD player (or all ?) has a nice feature :-<
+When playing an audio CD as a first thing after boot it does play it
+horribly. If you load a CDROM and play it (then it plays it at 4 speed)
+afterwords the problem disappears
+
+13) The AudioStream class libary is now the base of all the players..
+New players will appear together with extensions to the InputAudioStream Class
+
